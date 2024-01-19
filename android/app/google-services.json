@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "1075012183569",
+    "project_id": "plastic-bounty",
+    "storage_bucket": "plastic-bounty.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1075012183569:android:9cfc75f2d1a8983a8073b0",
+        "android_client_info": {
+          "package_name": "com.example.plastic_bounty"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1075012183569-hi2duvlkge5jcloqm9n624fq6q1eob5m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9DVCI907CtjdXcf2FC6OkNW1KWLmHTDk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1075012183569-hi2duvlkge5jcloqm9n624fq6q1eob5m.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1075012183569-4ibdhl7sj4sf2rivegohku9c9843irbv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.plasticBounty.RunnerTests"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
