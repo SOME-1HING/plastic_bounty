@@ -2,19 +2,18 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
-import 'package:plastic_bounty/pages/edit_profile_page.dart';
 import 'package:plastic_bounty/utils/get_user.dart';
 
-class ProfilePage extends StatefulWidget {
+class EditProfilePage extends StatefulWidget {
   final Map<String, Future<Box<dynamic>>> boxes;
 
-  const ProfilePage({super.key, required this.boxes});
+  const EditProfilePage({super.key, required this.boxes});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  State<EditProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<EditProfilePage> {
   String badges = "null";
 
   @override
@@ -34,22 +33,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) =>
-                        EditProfilePage(boxes: widget.boxes)));
-          },
+          onPressed: () {},
           backgroundColor: const Color(0xFF365486),
           child: const Icon(
-            Icons.edit,
+            Icons.check,
             color: Colors.white,
           ),
         ),
         appBar: AppBar(
           title: Text(
-            'Profile',
+            'Edit Profile',
             style: GoogleFonts.inter(fontWeight: FontWeight.w500),
           ),
           centerTitle: true,
