@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:plastic_bounty/Model/reporter.dart';
 
 Future<bool> getUser(Future<Box<dynamic>>? userbox) async {
   final user = FirebaseAuth.instance.currentUser;
@@ -20,6 +21,31 @@ Future<bool> getUser(Future<Box<dynamic>>? userbox) async {
   await (await userbox)?.put('user', result);
 
   return true;
+}
+
+Future<Reporter> getUserByID(String id) async {
+  Reporter result;
+
+  try {
+    if (id != "-1") {
+      final Uri url = Uri.parse(
+          'https://plastic-bounty-api.vercel.app/users/getUser?uid=${id}');
+      final http.Response response = await http.get(url);
+      final body = json.decode(response.body);
+      result = Reporter(
+          reporterFirstName: body['data']['first_name'],
+          reporterProfilePic: body['data']['profile_pic']);
+    } else {
+      result = Reporter(
+          reporterFirstName: "Tara",
+          reporterProfilePic: "https://picsum.photos/id/12/200/300.jpg");
+    }
+  } catch (e) {
+    result = Reporter(
+        reporterFirstName: "Tara",
+        reporterProfilePic: "https://picsum.photos/id/12/200/300.jpg");
+  }
+  return result;
 }
 
 Future<String> getProfilePic(Future<Box<dynamic>> userbox) async {
@@ -75,6 +101,8 @@ Future<String> getBadges(Future<Box<dynamic>> userbox) async {
   if (user == null || user.isEmpty || user == '') {
     return "null";
   }
+
+  print(user);
 
   return user['badges'] ?? "null";
 }

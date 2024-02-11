@@ -49,7 +49,7 @@ class GoogleSignInProvider extends ChangeNotifier {
         'points': '0',
       };
 
-      http.post(
+      await http.post(
         Uri.parse('https://plastic-bounty-api.vercel.app/users/addUser'),
         body: userData,
       );

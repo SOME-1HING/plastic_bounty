@@ -2,10 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:plastic_bounty/Model/ticket.dart';
 import 'package:plastic_bounty/pages/home_page.dart';
 import 'package:plastic_bounty/pages/login_page.dart';
+import 'package:plastic_bounty/utils/fetch_tickets.dart';
 import 'package:plastic_bounty/utils/get_user.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -24,7 +26,7 @@ Future main() async {
   await FlutterMapTileCaching.initialise();
   await FMTC.instance('mapStore').manage.createAsync();
   final directory = await getApplicationDocumentsDirectory();
-  Hive.init(directory.path);
+  Hive.initFlutter(directory.path);
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -55,8 +57,12 @@ class _MyAppState extends State<MyApp> {
                   child: CircularProgressIndicator(),
                 );
               } else if (snapshot.hasData) {
-                final boxes = {'userbox': Hive.openBox('userbox')};
+                final boxes = {
+                  'userbox': Hive.openBox('userbox'),
+                  'tickets': Hive.openBox('tickets'),
+                };
                 getUser(boxes['userbox']);
+                fetchTickets(boxes['tickets']);
 
                 return HomePage(boxes: boxes);
               } else if (snapshot.hasError) {

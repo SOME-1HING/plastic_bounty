@@ -447,10 +447,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
   Widget _buildLoadingWidget() {
     return Column(
       children: [
-        // Your existing UI for the header section
-        // ...
-
-        // Shimmer loading effect for the leaderboard
         Expanded(
           child: Shimmer.fromColors(
             baseColor: Colors.grey[300]!,

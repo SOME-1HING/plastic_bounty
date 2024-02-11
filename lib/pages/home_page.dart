@@ -16,12 +16,15 @@ import 'package:hive/hive.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:plastic_bounty/Model/ticket.dart';
 
 import 'package:plastic_bounty/pages/current_ticket_page.dart';
 import 'package:plastic_bounty/pages/leaderboard_page.dart';
 import 'package:plastic_bounty/pages/our_progress_page.dart';
 import 'package:plastic_bounty/pages/profile_page.dart';
+import 'package:plastic_bounty/pages/ticket_info_page.dart';
 import 'package:plastic_bounty/provider/google_sign_in.dart';
+import 'package:plastic_bounty/utils/fetch_tickets.dart';
 import 'package:plastic_bounty/utils/get_user.dart';
 import 'package:provider/provider.dart';
 import 'package:sliding_up_panel2/sliding_up_panel2.dart';
@@ -48,6 +51,7 @@ class _HomePageState extends State<HomePage> {
   bool imageSelected = false;
   String selectedCategory = "";
   String description = "";
+  bool isSubmitting = false;
 
   Future _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -61,40 +65,43 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  final List<Location> locations = [
+  final List<Location> dummyLocations = [
     Location(
+        id: -1,
         latitude: 13.058327214886928,
         longitude: 77.643205731337,
         iconType: "littering"),
     Location(
+        id: -1,
         latitude: 13.057818362103225,
         longitude: 77.64278127176117,
         iconType: "dumping"),
     Location(
+        id: -1,
         latitude: 13.057916272947296,
         longitude: 77.64311311185661,
         iconType: "fishing"),
     Location(
+        id: -1,
         latitude: 13.060534190988404,
         longitude: 77.6418149308069,
         iconType: "littering"),
     Location(
+        id: -1,
         latitude: 13.06029571081583,
         longitude: 77.641978397659877,
         iconType: "dumping"),
     Location(
+        id: -1,
         latitude: 13.060479099072053,
         longitude: 77.641566244267,
         iconType: "fishing")
   ];
+  late List<Location> locations = dummyLocations;
 
-  Future<void> moveToCurrLocation() async {
-    position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    mapController.move(LatLng(position.latitude, position.longitude), 19.0);
+  Future moveToCurrLocation() async {
+    mapController.move(const LatLng(13.0581234, 77.6429414), 19.0);
     mapController.rotate(0);
-
-    return;
   }
 
   Future<String> uploadImageToFirebase() async {
@@ -112,15 +119,13 @@ class _HomePageState extends State<HomePage> {
 
   AssetImage _getIcon(String condition) {
     switch (condition) {
-      case "Dead Fish":
-        return const AssetImage('./assets/images/');
       case "Industrial Waste":
-        return const AssetImage('./assets/images/');
+        return const AssetImage('./assets/images/industrial.png');
       case "Illegal Dumping":
         return const AssetImage('./assets/images/dumping.png');
       case "Littering":
         return const AssetImage('assets/images/littering.png');
-      case "Fishing Gear":
+      case "Dead Fish":
         return const AssetImage('assets/images/fishing.png');
 
       default:
@@ -168,11 +173,20 @@ class _HomePageState extends State<HomePage> {
     panelController = PanelController();
     mapController = MapController();
 
+    Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
+        .then((value) => position = value);
+
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
         statusBarColor: Colors.white,
         statusBarIconBrightness: Brightness.dark,
         systemNavigationBarColor: Colors.black,
         systemNavigationBarIconBrightness: Brightness.light));
+
+    parseTicketsToLoc(widget.boxes['tickets']!).then((x) {
+      setState(() {
+        if (x != []) locations = x;
+      });
+    });
 
     super.initState();
   }
@@ -230,50 +244,77 @@ class _HomePageState extends State<HomePage> {
         height: MediaQuery.of(context).size.height,
         child: Stack(
           children: [
-            SizedBox(
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.height,
-              child: FlutterMap(
-                mapController: mapController,
-                options: const MapOptions(initialZoom: 19, keepAlive: true),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    maxZoom: 19,
-                    // userAgentPackageName: 'com.example.app',
-                    tileProvider: FMTC.instance('mapStore').getTileProvider(),
-                  ),
-                  for (Location location in locations)
-                    LocationMarkerLayer(
-                        style: LocationMarkerStyle(
-                            markerSize: const Size.square(64),
-                            showAccuracyCircle: false,
-                            marker: Image(
-                                height: 64,
-                                width: 64,
-                                image: _getIcon(location.iconType))),
-                        position: LocationMarkerPosition(
-                            longitude: location.longitude,
-                            latitude: location.latitude,
-                            accuracy: 3)),
-                  CurrentLocationLayer(
-                    alignPositionOnUpdate: AlignOnUpdate.once,
-                    alignDirectionOnUpdate: AlignOnUpdate.never,
-                    style: const LocationMarkerStyle(
-                      showHeadingSector: false,
-                      marker: DefaultLocationMarker(),
-                      markerSize: Size(32, 32),
+            Positioned(
+              bottom: 0,
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height - kToolbarHeight,
+                child: FlutterMap(
+                  mapController: mapController,
+                  options: const MapOptions(
+                      initialZoom: 19, keepAlive: true, maxZoom: 19),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      maxZoom: 19,
+                      // userAgentPackageName: 'com.example.app',
+                      tileProvider: FMTC.instance('mapStore').getTileProvider(),
                     ),
-                  ),
-                ],
+                    CurrentLocationLayer(
+                      alignPositionOnUpdate: AlignOnUpdate.once,
+                      alignDirectionOnUpdate: AlignOnUpdate.never,
+                      style: const LocationMarkerStyle(
+                        showHeadingSector: false,
+                        marker: DefaultLocationMarker(),
+                        markerSize: Size(32, 32),
+                      ),
+                    ),
+                    for (Location location in locations)
+                      InkWell(
+                        onTap: () {
+                          getTicketByID(widget.boxes['tickets']!, location.id)
+                              .then((value) {
+                            parseTicket(value).then((ticket) {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => CurrTicketPage(
+                                            boxes: widget.boxes,
+                                          )));
+
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => TicketInfoPage(
+                                            boxes: widget.boxes,
+                                            ticket: ticket,
+                                          )));
+                            });
+                          });
+                        },
+                        child: LocationMarkerLayer(
+                            style: LocationMarkerStyle(
+                                markerSize: const Size.square(64),
+                                showAccuracyCircle: false,
+                                marker: Image(
+                                    height: 64,
+                                    width: 64,
+                                    image: _getIcon(location.iconType))),
+                            position: LocationMarkerPosition(
+                                longitude: location.longitude,
+                                latitude: location.latitude,
+                                accuracy: 3)),
+                      ),
+                  ],
+                ),
               ),
             ),
             PreferredSize(
               preferredSize: Size(MediaQuery.of(context).size.width, 140),
               child: Container(
                 margin: EdgeInsets.only(
-                    top: MediaQuery.of(context).viewPadding.top),
+                    top: MediaQuery.of(context).viewPadding.top - 2),
                 child: Stack(children: [
                   SizedBox(
                     width: MediaQuery.of(context).size.width,
@@ -314,24 +355,13 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       ),
-                      const SizedBox(
-                        width: 20,
-                      ),
-                      Text(
-                        "Plastic Bounty",
-                        style: GoogleFonts.inter(
+                      Text("Plastic Bounty",
+                          style: GoogleFonts.inter(
                             letterSpacing: 2,
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
-                            shadows: <Shadow>[
-                              const Shadow(
-                                offset: Offset(0, 3.0),
-                                blurRadius: 30.0,
-                                color: Color.fromARGB(255, 70, 67, 67),
-                              )
-                            ]),
-                      ),
+                          )),
                     ],
                   ),
                 ]),
@@ -362,7 +392,14 @@ class _HomePageState extends State<HomePage> {
               top: 236,
               right: 10,
               child: InkWell(
-                onTap: () async {},
+                onTap: () async {
+                  await getUser(widget.boxes['userbox']!);
+                  await fetchTickets(widget.boxes['tickets']!);
+                  dynamic x = await parseTicketsToLoc(widget.boxes['tickets']!);
+                  setState(() {
+                    if (x != []) locations = x;
+                  });
+                },
                 child: Container(
                   width: 64,
                   height: 64,
@@ -458,8 +495,7 @@ class _HomePageState extends State<HomePage> {
                                 'Littering',
                                 'Illegal Dumping',
                                 'Industrial Waste',
-                                'Fishing Gear',
-                                'Dead Fish'
+                                'Dead Fish',
                               ].map((String value) {
                                 return DropdownMenuItem<String>(
                                   value: value,
@@ -477,17 +513,9 @@ class _HomePageState extends State<HomePage> {
                             )
                           ],
                         ),
-                        Row(
-                          children: [
-                            Text(
-                              "Complaint Description",
-                              style: GoogleFonts.dmSans(fontSize: 16),
-                            ),
-                            const SizedBox(
-                              width: 5,
-                            ),
-                            const Text("(optional)")
-                          ],
+                        Text(
+                          "Complaint Description",
+                          style: GoogleFonts.dmSans(fontSize: 16),
                         ),
                         TextField(
                           controller: descriptionController,
@@ -529,55 +557,80 @@ class _HomePageState extends State<HomePage> {
                               width: MediaQuery.of(context).size.width,
                               height: 70,
                               child: ElevatedButton(
-                                onPressed: () async {
-                                  if (selectedCategory == "" ||
-                                      description == "" ||
-                                      !imageSelected) {
-                                    String errorMessage;
+                                onPressed:
+                                    isSubmitting // Disable button if submitting
+                                        ? null
+                                        : () async {
+                                            if (selectedCategory == "" ||
+                                                description == "" ||
+                                                !imageSelected) {
+                                              String errorMessage;
 
-                                    if (selectedCategory == "" ||
-                                        selectedCategory == "Select") {
-                                      errorMessage = 'Please select a category';
-                                    } else if (description == "") {
-                                      errorMessage =
-                                          'Please enter a description';
-                                    } else {
-                                      errorMessage = 'Please select an image';
-                                    }
+                                              if (selectedCategory == "" ||
+                                                  selectedCategory ==
+                                                      "Select") {
+                                                errorMessage =
+                                                    'Please select a category';
+                                              } else if (description == "") {
+                                                errorMessage =
+                                                    'Please enter a description';
+                                              } else {
+                                                errorMessage =
+                                                    'Please select an image';
+                                              }
 
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        dismissDirection: DismissDirection.up,
-                                        content: Text(errorMessage),
-                                        backgroundColor: Colors.red,
-                                        duration: const Duration(seconds: 3),
-                                      ),
-                                    );
-                                  } else {
-                                    bool isRaised = false;
-                                    try {
-                                      isRaised = await submitTicket();
-                                    } catch (e) {
-                                      if (kDebugMode) {
-                                        print(e);
-                                      }
-                                    }
-                                    isRaised
-                                        ? _successDialog(context)
-                                        : _errorDialog(context);
-                                  }
-                                },
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  dismissDirection:
+                                                      DismissDirection.up,
+                                                  content: Text(errorMessage),
+                                                  backgroundColor: Colors.red,
+                                                  duration: const Duration(
+                                                      seconds: 3),
+                                                ),
+                                              );
+                                            } else {
+                                              setState(() {
+                                                isSubmitting =
+                                                    true; // Start submission process
+                                              });
+                                              bool isRaised = false;
+                                              try {
+                                                isRaised = await submitTicket();
+                                              } catch (e) {
+                                                if (kDebugMode) {
+                                                  print(e);
+                                                }
+                                              } finally {
+                                                setState(() {
+                                                  isSubmitting =
+                                                      false; // Reset submission status
+                                                });
+                                              }
+                                              if (isRaised) {
+                                                _successDialog(context);
+                                              } else {
+                                                _errorDialog(context);
+                                              }
+                                            }
+                                          },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF365486),
+                                  backgroundColor:
+                                      isSubmitting // Change button color based on submission status
+                                          ? Colors.grey
+                                          : const Color(0xFF365486),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                child: const Text(
-                                  "Raise Ticket",
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 18),
-                                ),
+                                child: isSubmitting
+                                    ? CircularProgressIndicator()
+                                    : const Text(
+                                        "Raise Ticket",
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 18),
+                                      ),
                               ),
                             ),
                           ),
@@ -596,7 +649,7 @@ class _HomePageState extends State<HomePage> {
           padding: EdgeInsets.zero,
           children: [
             SizedBox(
-              height: 200,
+              height: 200 + kToolbarHeight,
               child: InkWell(
                 onTap: () {
                   Navigator.push(
@@ -607,7 +660,7 @@ class _HomePageState extends State<HomePage> {
                               )));
                 },
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -645,7 +698,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                         const SizedBox(
-                          width: 10,
+                          width: 12,
                         ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -716,10 +769,14 @@ class _HomePageState extends State<HomePage> {
                     style: GoogleFonts.openSans(),
                   ),
                   onTap: () {
+                    fetchTickets(widget.boxes['tickets']!);
+
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const CurrTicketPage()));
+                            builder: (context) => CurrTicketPage(
+                                  boxes: widget.boxes,
+                                )));
                   },
                 ),
                 ListTile(
