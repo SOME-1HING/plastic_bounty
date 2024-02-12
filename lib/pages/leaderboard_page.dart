@@ -210,7 +210,9 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                               ),
                               Positioned(
                                 top: -30,
-                                left: 31,
+                                // Dev left: 25
+                                // Yash left: 31
+                                left: 25,
                                 child: Container(
                                   width: 64,
                                   height: 64,

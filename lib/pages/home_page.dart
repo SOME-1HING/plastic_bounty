@@ -53,18 +53,6 @@ class _HomePageState extends State<HomePage> {
   String description = "";
   bool isSubmitting = false;
 
-  Future _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    XFile? selected = await picker.pickImage(source: ImageSource.camera);
-
-    setState(() {
-      if (selected != null) {
-        _imageFile = File(selected.path);
-        imageSelected = true;
-      }
-    });
-  }
-
   final List<Location> dummyLocations = [
     Location(
         id: -1,
@@ -104,19 +92,6 @@ class _HomePageState extends State<HomePage> {
     mapController.rotate(0);
   }
 
-  Future<String> uploadImageToFirebase() async {
-    final FirebaseStorage _storage =
-        FirebaseStorage.instanceFor(bucket: "gs://plastic-bounty.appspot.com");
-    final storageRef = FirebaseStorage.instance.ref();
-
-    final UploadTask uploadTask =
-        storageRef.child('images/${DateTime.now()}.png').putFile(_imageFile);
-    final TaskSnapshot downloadUrl = (await uploadTask.whenComplete(() {}));
-    final String url = await downloadUrl.ref.getDownloadURL();
-
-    return url;
-  }
-
   AssetImage _getIcon(String condition) {
     switch (condition) {
       case "Industrial Waste":
@@ -131,6 +106,35 @@ class _HomePageState extends State<HomePage> {
       default:
         return const AssetImage('assets/images/littering.png');
     }
+  }
+
+  Future _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    XFile? selected = await picker.pickImage(
+        source: ImageSource.camera,
+        maxHeight: 480,
+        maxWidth: 640,
+        imageQuality: 50);
+
+    setState(() {
+      if (selected != null) {
+        _imageFile = File(selected.path);
+        imageSelected = true;
+      }
+    });
+  }
+
+  Future<String> uploadImageToFirebase() async {
+    final FirebaseStorage _storage =
+        FirebaseStorage.instanceFor(bucket: "gs://plastic-bounty.appspot.com");
+    final storageRef = FirebaseStorage.instance.ref();
+
+    final UploadTask uploadTask =
+        storageRef.child('images/${DateTime.now()}.png').putFile(_imageFile);
+    final TaskSnapshot downloadUrl = (await uploadTask.whenComplete(() {}));
+    final String url = await downloadUrl.ref.getDownloadURL();
+
+    return url;
   }
 
   Future<bool> submitTicket() async {
@@ -598,6 +602,19 @@ class _HomePageState extends State<HomePage> {
                                               bool isRaised = false;
                                               try {
                                                 isRaised = await submitTicket();
+                                                if (isRaised) {
+                                                  await getUser(
+                                                      widget.boxes['userbox']!);
+                                                  await fetchTickets(
+                                                      widget.boxes['tickets']!);
+                                                  dynamic x =
+                                                      await parseTicketsToLoc(
+                                                          widget.boxes[
+                                                              'tickets']!);
+                                                  setState(() {
+                                                    if (x != []) locations = x;
+                                                  });
+                                                }
                                               } catch (e) {
                                                 if (kDebugMode) {
                                                   print(e);
