@@ -1,16 +1,7 @@
-# plastic_bounty
+# Plastic Bounty
 
-A new Flutter project.
+This repository contains App code for Plastic Bounty. For the backend code visit: https://github.com/SOME-1HING/plastic-bounty-api
 
-## Getting Started
+## How to Run?
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Download the apk file from: https://github.com/SOME-1HING/plastic_bounty/blob/main/output/plastic_bounty.apk
